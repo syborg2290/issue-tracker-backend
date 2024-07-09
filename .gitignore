@@ -1,0 +1,28 @@
+# Node modules
+node_modules/
+
+# NestJS build output
+dist/
+
+# NestJS environment variables file
+.env
+
+# IDE/Editor specific files
+.vscode/
+.idea/
+
+# macOS specific files
+.DS_Store
+
+# Logs
+logs/
+
+# Dependency lock files
+yarn.lock
+package-lock.json
+
+# Environment variables
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
