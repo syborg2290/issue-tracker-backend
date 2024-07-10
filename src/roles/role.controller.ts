@@ -23,14 +23,13 @@ import { PermissionDecorator } from 'src/permission/permissions.decorator';
 import { PermissionsGuard } from 'src/permission/permissions.guard';
 import { AuthGuard } from '@nestjs/passport';
 import { PermissionEnum } from 'src/permission/enum/permission.enum';
-import { Prefixes } from 'src/utils/prefixes';
 
 @ApiTags('role')
-@Controller()
+@Controller({ path: 'roles', version: '1' })
 export class RoleController {
   constructor(private readonly roleService: RoleService) { }
 
-  @Post(Prefixes.admin + 'roles/')
+  @Post()
   @PermissionDecorator(PermissionEnum.CREATE_ROLE)
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
   @ApiBearerAuth()
@@ -38,7 +37,7 @@ export class RoleController {
     return this.roleService.createRole(createRoleDto);
   }
 
-  @Get(Prefixes.admin + 'roles/' + 'get-all-role')
+  @Get('get-all-role')
   @PermissionDecorator(PermissionEnum.VIEW_ROLE)
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
   @ApiBearerAuth()
@@ -80,7 +79,7 @@ export class RoleController {
     };
   }
 
-  @Get(Prefixes.admin + 'roles/' + ':id')
+  @Get(':id')
   @PermissionDecorator(PermissionEnum.VIEW_ROLE)
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
   @ApiBearerAuth()
@@ -94,7 +93,7 @@ export class RoleController {
     return this.roleService.findOne({ id });
   }
 
-  @Patch(Prefixes.admin + 'roles/' + ':id')
+  @Patch(':id')
   @PermissionDecorator(PermissionEnum.UPDATE_ROLE)
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
   @ApiBearerAuth()
@@ -111,7 +110,7 @@ export class RoleController {
     return this.roleService.update(id, roleDto);
   }
 
-  @Delete(Prefixes.admin + 'roles/' + ':id')
+  @Delete(':id')
   @PermissionDecorator(PermissionEnum.DELETE_ROLE)
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
   @ApiBearerAuth()

@@ -21,7 +21,7 @@ import { PermissionDecorator } from 'src/permission/permissions.decorator';
 @ApiTags('permissions')
 @Controller({
   path: 'permissions',
-
+  version: '1'
 })
 export class PermissionController {
   constructor(private readonly permissionService: PermissionService) { }
