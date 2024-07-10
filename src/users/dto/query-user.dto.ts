@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import {
   IsNumber,
   IsOptional,
@@ -7,19 +7,40 @@ import {
 } from 'class-validator';
 import { Transform, Type, plainToInstance } from 'class-transformer';
 import { User } from '../domain/user';
-import { RoleDto } from '../../roles/dto/role.dto';
 
 export class FilterUserDto {
-  @ApiPropertyOptional({ type: RoleDto })
+  @ApiProperty()
   @IsOptional()
-  @ValidateNested({ each: true })
-  @Type(() => RoleDto)
-  roles?: RoleDto[] | null;
+  @Transform(({ value }) => value?.trim())
+  name?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @Transform(({ value }) => value?.trim())
+  lname?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @Transform(({ value }) => value?.trim())
+  role?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  @Transform(({ value }) => value?.trim())
+  userType?: string;
+
+  @ApiProperty()
+  @IsOptional()
+  status?: number;
+
+  @ApiProperty()
+  @IsOptional()
+  @Transform(({ value }) => value?.trim())
+  email?: string;
 }
 
 export class SortUserDto {
   @ApiProperty()
-  @Type(() => String)
   @IsString()
   orderBy: keyof User;
 
@@ -29,19 +50,23 @@ export class SortUserDto {
 }
 
 export class QueryUserDto {
-  @ApiPropertyOptional()
+  @ApiProperty({
+    required: false,
+  })
   @Transform(({ value }) => (value ? Number(value) : 1))
   @IsNumber()
   @IsOptional()
-  page?: number;
+  page: number;
 
-  @ApiPropertyOptional()
+  @ApiProperty({
+    required: false,
+  })
   @Transform(({ value }) => (value ? Number(value) : 10))
   @IsNumber()
   @IsOptional()
-  limit?: number;
+  limit: number;
 
-  @ApiPropertyOptional({ type: String })
+  @ApiProperty({ type: String, required: false })
   @IsOptional()
   @Transform(({ value }) =>
     value ? plainToInstance(FilterUserDto, JSON.parse(value)) : undefined,
@@ -50,7 +75,7 @@ export class QueryUserDto {
   @Type(() => FilterUserDto)
   filters?: FilterUserDto | null;
 
-  @ApiPropertyOptional({ type: String })
+  @ApiProperty({ type: String, required: false })
   @IsOptional()
   @Transform(({ value }) => {
     return value ? plainToInstance(SortUserDto, JSON.parse(value)) : undefined;

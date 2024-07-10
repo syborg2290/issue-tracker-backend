@@ -1,39 +1,35 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsNotEmpty, IsOptional, MinLength } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, MinLength } from 'class-validator';
 import { FileDto } from '../../files/dto/file.dto';
 import { Transform } from 'class-transformer';
-import { lowerCaseTransformer } from '../../utils/transformers/lower-case.transformer';
 
 export class AuthUpdateDto {
-  @ApiPropertyOptional({ type: () => FileDto })
+  @ApiProperty({ type: () => FileDto })
   @IsOptional()
-  photo?: FileDto | null;
+  photo?: FileDto;
 
-  @ApiPropertyOptional({ example: 'John' })
+  @ApiProperty({ example: 'John' })
   @IsOptional()
-  @IsNotEmpty({ message: 'mustBeNotEmpty' })
+  @IsNotEmpty({ message: 'Must be not empty' })
+  @Transform(({ value }) => value?.trim())
   firstName?: string;
 
-  @ApiPropertyOptional({ example: 'Doe' })
+  @ApiProperty({ example: 'Doe' })
   @IsOptional()
-  @IsNotEmpty({ message: 'mustBeNotEmpty' })
+  @IsNotEmpty({ message: 'Must be not empty' })
+  @Transform(({ value }) => value?.trim())
   lastName?: string;
 
-  @ApiPropertyOptional({ example: 'new.email@example.com' })
-  @IsOptional()
-  @IsNotEmpty()
-  @IsEmail()
-  @Transform(lowerCaseTransformer)
-  email?: string;
-
-  @ApiPropertyOptional()
+  @ApiProperty()
   @IsOptional()
   @IsNotEmpty()
   @MinLength(6)
+  @Transform(({ value }) => value?.trim())
   password?: string;
 
-  @ApiPropertyOptional()
+  @ApiProperty()
   @IsOptional()
-  @IsNotEmpty({ message: 'mustBeNotEmpty' })
+  @IsNotEmpty({ message: 'Must be not empty' })
+  @Transform(({ value }) => value?.trim())
   oldPassword?: string;
 }

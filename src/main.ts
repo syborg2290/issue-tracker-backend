@@ -11,7 +11,9 @@ import { useContainer } from 'class-validator';
 import { AppModule } from './app.module';
 import validationOptions from './utils/validation-options';
 import { AllConfigType } from './config/config.type';
-import { ResolvePromisesInterceptor } from './utils/serializer.interceptor';
+import { AllExceptionsFilter } from './utils/exception-filters';
+import { XssSanitizationPipe } from './utils/xss-sanitize.pipe';
+import { ResponseInterceptor } from './utils/common/response.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, { cors: true });
@@ -29,12 +31,12 @@ async function bootstrap() {
     type: VersioningType.URI,
   });
   app.useGlobalPipes(new ValidationPipe(validationOptions));
-  app.useGlobalInterceptors(
-    // ResolvePromisesInterceptor is used to resolve promises in responses because class-transformer can't do it
-    // https://github.com/typestack/class-transformer/issues/549
-    new ResolvePromisesInterceptor(),
-    new ClassSerializerInterceptor(app.get(Reflector)),
-  );
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
+  app.useGlobalFilters(new AllExceptionsFilter());
+  app.useGlobalPipes(new XssSanitizationPipe());
+
+  // Apply the response interceptor globally
+  app.useGlobalInterceptors(new ResponseInterceptor());
 
   const options = new DocumentBuilder()
     .setTitle('Issue Tracker')

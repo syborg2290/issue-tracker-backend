@@ -1,8 +1,8 @@
+import 'dotenv/config';
 import { registerAs } from '@nestjs/config';
-
+import { AuthConfig } from '../../auth/config/auth-config.type';
 import { IsString } from 'class-validator';
 import validateConfig from '../../utils/validate-config';
-import { AuthConfig } from './auth-config.type';
 
 class EnvironmentVariablesValidator {
   @IsString()

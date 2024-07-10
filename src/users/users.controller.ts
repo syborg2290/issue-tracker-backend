@@ -6,96 +6,88 @@ import {
   Patch,
   Param,
   Delete,
-  UseGuards,
   Query,
   HttpStatus,
   HttpCode,
-  SerializeOptions,
+  UseGuards,
 } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
-import {
-  ApiBearerAuth,
-  ApiCreatedResponse,
-  ApiOkResponse,
-  ApiParam,
-  ApiTags,
-} from '@nestjs/swagger';
-import { Roles } from '../roles/roles.decorator';
-import { RoleEnum } from '../roles/roles.enum';
-import { AuthGuard } from '@nestjs/passport';
-
-import {
-  InfinityPaginationResponse,
-  InfinityPaginationResponseDto,
-} from '../utils/dto/infinity-pagination-response.dto';
+import { ApiParam, ApiTags, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import { InfinityPaginationResultType } from '../utils/types/infinity-pagination-result.type';
 import { NullableType } from '../utils/types/nullable.type';
-import { QueryUserDto } from './dto/query-user.dto';
 import { User } from './domain/user';
 import { UsersService } from './users.service';
-import { RolesGuard } from '../roles/roles.guard';
-import { infinityPagination } from '../utils/infinity-pagination';
+import { PermissionDecorator } from 'src/permission/permissions.decorator';
+import { PermissionEnum } from 'src/permission/enum/permission.enum';
+import { PermissionsGuard } from 'src/permission/permissions.guard';
+import { AuthGuard } from '@nestjs/passport';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { StatusEnum } from 'src/statuses/statuses.enum';
 
-@ApiBearerAuth()
-@Roles(RoleEnum.admin)
-@UseGuards(AuthGuard('jwt'), RolesGuard)
-@ApiTags('Users')
-@Controller({
-  path: 'users',
-  version: '1',
-})
+@ApiTags('user')
+@Controller('user')
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
+  constructor(private readonly usersService: UsersService) { }
 
-  @ApiCreatedResponse({
-    type: User,
-  })
-  @SerializeOptions({
-    groups: ['admin'],
-  })
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  create(@Body() createProfileDto: CreateUserDto): Promise<User> {
-    return this.usersService.create(createProfileDto);
+  @PermissionDecorator(PermissionEnum.CREATE_USER)
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @ApiBearerAuth()
+  create(@Body() createUserDto: CreateUserDto): Promise<User> {
+    return this.usersService.create(createUserDto);
   }
 
-  @ApiOkResponse({
-    type: InfinityPaginationResponse(User),
-  })
-  @SerializeOptions({
-    groups: ['admin'],
-  })
   @Get()
+  @PermissionDecorator(PermissionEnum.VIEW_USER)
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
+  @ApiQuery({ name: 'pages', required: false })
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'name', required: false })
+  @ApiQuery({ name: 'email', required: false })
+  @ApiQuery({ name: 'role', required: false })
+  @ApiQuery({ name: 'userType', required: false })
+  @ApiQuery({ name: 'status', required: false })
   async findAll(
-    @Query() query: QueryUserDto,
-  ): Promise<InfinityPaginationResponseDto<User>> {
-    const page = query?.page ?? 1;
-    let limit = query?.limit ?? 10;
+    @Query('pages', { transform: (value) => (value ? Number(value) : 1) })
+    pages?: number,
+    @Query('limit', { transform: (value) => (value ? Number(value) : 10000) })
+    limits?: number,
+    @Query('name') name?: string,
+    @Query('email') email?: string,
+    @Query('role') role?: string,
+    @Query('userType') userType?: string,
+    @Query('status') status?: number,
+  ): Promise<InfinityPaginationResultType<User>> {
+    const page = pages ?? 1;
+    let limit = limits ?? 10;
+
     if (limit > 50) {
       limit = 50;
     }
 
-    return infinityPagination(
-      await this.usersService.findManyWithPagination({
-        filterOptions: query?.filters,
-        sortOptions: query?.sort,
-        paginationOptions: {
-          page,
-          limit,
-        },
-      }),
-      { page, limit },
-    );
+    const paginationResult = await this.usersService.findManyWithPagination({
+      filterOptions: { name, role, userType, status, email },
+      sortOptions: [],
+      paginationOptions: {
+        page,
+        limit,
+      },
+    });
+    const { totalRecords } = paginationResult;
+
+    return {
+      ...paginationResult,
+      totalRecords,
+    };
   }
 
-  @ApiOkResponse({
-    type: User,
-  })
-  @SerializeOptions({
-    groups: ['admin'],
-  })
   @Get(':id')
+  @PermissionDecorator(PermissionEnum.VIEW_USER)
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiParam({
     name: 'id',
@@ -103,16 +95,13 @@ export class UsersController {
     required: true,
   })
   findOne(@Param('id') id: User['id']): Promise<NullableType<User>> {
-    return this.usersService.findById(id);
+    return this.usersService.findOne({ id });
   }
 
-  @ApiOkResponse({
-    type: User,
-  })
-  @SerializeOptions({
-    groups: ['admin'],
-  })
   @Patch(':id')
+  @PermissionDecorator(PermissionEnum.UPDATE_USER)
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
   @ApiParam({
     name: 'id',
@@ -121,12 +110,15 @@ export class UsersController {
   })
   update(
     @Param('id') id: User['id'],
-    @Body() updateProfileDto: UpdateUserDto,
+    @Body() updateUserDto: UpdateUserDto,
   ): Promise<User | null> {
-    return this.usersService.update(id, updateProfileDto);
+    return this.usersService.update(id, updateUserDto);
   }
 
   @Delete(':id')
+  @PermissionDecorator(PermissionEnum.DELETE_USER)
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @ApiBearerAuth()
   @ApiParam({
     name: 'id',
     type: String,
@@ -134,6 +126,23 @@ export class UsersController {
   })
   @HttpCode(HttpStatus.NO_CONTENT)
   remove(@Param('id') id: User['id']): Promise<void> {
-    return this.usersService.remove(id);
+    return this.usersService.softDelete(id);
+  }
+
+  @Patch('set-terminate/:id')
+  @PermissionDecorator(PermissionEnum.UPDATE_USER)
+  @UseGuards(AuthGuard('jwt'), PermissionsGuard)
+  @ApiBearerAuth()
+  @HttpCode(HttpStatus.OK)
+  @ApiParam({
+    name: 'id',
+    type: String,
+    required: true,
+  })
+  setUserBlackList(
+    @Param('id') id: User['id'],
+    @Query('status') status: StatusEnum,
+  ): Promise<User | null> {
+    return this.usersService.setUserBlackList(id, status);
   }
 }
