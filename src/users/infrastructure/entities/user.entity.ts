@@ -14,23 +14,20 @@ import {
   UpdateDateColumn,
   Unique,
   JoinColumn,
+  OneToMany,
 } from 'typeorm';
 import { RoleEntity } from 'src/roles/infrastructure/entities/role.entity';
 import { StatusEnum } from 'src/statuses/statuses.enum';
 import { FileEntity } from 'src/files/infrastructure/persistence/relational/entities/file.entity';
+import { IssueEntity } from 'src/issues/infrastructure/entities/issue.entity';
 
-
-@Entity({
-  name: 'user',
-})
+@Entity({ name: 'user' })
 @Unique(['email'])
 export class UserEntity extends EntityRelationalHelper {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // For "string | null" we need to use String type.
-  // More info: https://github.com/typeorm/typeorm/issues/2567
-  @Column({ type: String, unique: true, nullable: true })
+  @Column({ type: 'varchar', unique: true, nullable: true })
   @Expose()
   @IsEmail()
   email: string | null;
@@ -52,18 +49,18 @@ export class UserEntity extends EntityRelationalHelper {
   provider: string;
 
   @Index()
-  @Column({ type: String, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   socialId?: string | null;
 
   @Index()
-  @Column({ type: String, nullable: false })
+  @Column({ type: 'varchar', nullable: false })
   firstName: string;
 
   @Index()
-  @Column({ type: String, nullable: false })
+  @Column({ type: 'varchar', nullable: false })
   lastName: string;
 
-  @Column({ type: String, nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   address: string | null;
 
   @ManyToOne(() => FileEntity, {
@@ -75,8 +72,14 @@ export class UserEntity extends EntityRelationalHelper {
   @JoinColumn({ name: 'roleId' })
   role: RoleEntity;
 
-  @Column({ default: 1, })
+  @Column({ default: 1 })
   status: StatusEnum;
+
+  @OneToMany(() => IssueEntity, (issue) => issue.createdBy)
+  issuesCreatedBy: IssueEntity[];
+
+  @OneToMany(() => IssueEntity, (issue) => issue.assignedTo)
+  issuesAssignedTo: IssueEntity[];
 
   @CreateDateColumn()
   createdAt: Date;
