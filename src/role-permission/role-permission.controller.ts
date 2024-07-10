@@ -19,14 +19,13 @@ import { PermissionDecorator } from 'src/permission/permissions.decorator';
 import { PermissionEnum } from 'src/permission/enum/permission.enum';
 import { PermissionsGuard } from 'src/permission/permissions.guard';
 import { AuthGuard } from '@nestjs/passport';
-import { Prefixes } from 'src/utils/prefixes';
 @ApiBearerAuth()
 @ApiTags('role-permission')
-@Controller()
+@Controller({ path: 'role-permission', version: '1' })
 export class RolePermissionController {
   constructor(private readonly rolePermissionService: RolePermissionService) { }
 
-  @Post(Prefixes.admin + 'role-permission/')
+  @Post()
   @PermissionDecorator(PermissionEnum.ASSIGN_ROLE_PERMISSION)
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
   @HttpCode(HttpStatus.CREATED)
@@ -38,7 +37,7 @@ export class RolePermissionController {
     );
   }
 
-  @Get('role-permission/')
+  @Get()
   @PermissionDecorator(PermissionEnum.VIEW_PERMISSION)
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
   @HttpCode(HttpStatus.OK)
@@ -63,7 +62,7 @@ export class RolePermissionController {
     });
   }
 
-  @Get('role-permission/' + ':id')
+  @Get(':id')
   @PermissionDecorator(PermissionEnum.VIEW_PERMISSION)
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
   @HttpCode(HttpStatus.OK)
@@ -73,7 +72,7 @@ export class RolePermissionController {
     return this.rolePermissionService.findOne({ id });
   }
 
-  @Delete(Prefixes.admin + 'role-permission/' + ':id')
+  @Delete(':id')
   @PermissionDecorator(PermissionEnum.DELETE_PERMISSION)
   @UseGuards(AuthGuard('jwt'), PermissionsGuard)
   @ApiParam({

@@ -25,7 +25,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { StatusEnum } from 'src/statuses/statuses.enum';
 
 @ApiTags('user')
-@Controller('user')
+@Controller({ path: 'user', version: '1' })
 export class UsersController {
   constructor(private readonly usersService: UsersService) { }
 
