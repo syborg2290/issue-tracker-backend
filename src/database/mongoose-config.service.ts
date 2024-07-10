@@ -8,7 +8,7 @@ import { AllConfigType } from '../config/config.type';
 
 @Injectable()
 export class MongooseConfigService implements MongooseOptionsFactory {
-  constructor(private configService: ConfigService<AllConfigType>) {}
+  constructor(private configService: ConfigService<AllConfigType>) { }
 
   createMongooseOptions(): MongooseModuleOptions {
     return {

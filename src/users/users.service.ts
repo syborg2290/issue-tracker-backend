@@ -1,31 +1,33 @@
-import {
-  HttpStatus,
-  Injectable,
-  UnprocessableEntityException,
-} from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { EntityCondition } from '../utils/types/entity-condition.type';
+import { IPaginationOptions } from '../utils/types/pagination-options';
 import { CreateUserDto } from './dto/create-user.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { FilterUserDto, SortUserDto } from './dto/query-user.dto';
-import { UserRepository } from './infrastructure/persistence/user.repository';
 import { User } from './domain/user';
+import { FilesService } from '../files/files.service';
 import bcrypt from 'bcryptjs';
 import { AuthProvidersEnum } from '../auth/auth-providers.enum';
-import { FilesService } from '../files/files.service';
-import { RoleEnum } from '../roles/roles.enum';
-import { StatusEnum } from '../statuses/statuses.enum';
-import { IPaginationOptions } from '../utils/types/pagination-options';
-import { DeepPartial } from '../utils/types/deep-partial.type';
+import { UserAbstractRepository } from './infrastructure/repositories/user.abstract.repository';
+import { RoleService } from '../roles/role.service';
+import { RolePermissionService } from 'src/role-permission/role-permission.service';
+import { InfinityPaginationResultType } from 'src/utils/types/infinity-pagination-result.type';
+import { StatusEnum } from 'src/statuses/statuses.enum';
+import { CustomException } from 'src/utils/common-exception';
 
 @Injectable()
 export class UsersService {
   constructor(
-    private readonly usersRepository: UserRepository,
+    private readonly usersRepository: UserAbstractRepository,
     private readonly filesService: FilesService,
-  ) {}
+    private readonly roleService: RoleService,
+    private readonly rolePermissionService: RolePermissionService,
+  ) { }
 
   async create(createProfileDto: CreateUserDto): Promise<User> {
     const clonedPayload = {
       provider: AuthProvidersEnum.email,
+      status: StatusEnum.active,
       ...createProfileDto,
     };
 
@@ -35,59 +37,52 @@ export class UsersService {
     }
 
     if (clonedPayload.email) {
-      const userObject = await this.usersRepository.findByEmail(
-        clonedPayload.email,
-      );
+      const userObject = await this.usersRepository.findOne({
+        email: clonedPayload.email,
+      });
       if (userObject) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            email: 'emailAlreadyExists',
+        throw new HttpException(
+          {
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            message: 'Email already exists',
           },
-        });
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
     }
 
     if (clonedPayload.photo?.id) {
-      const fileObject = await this.filesService.findById(
-        clonedPayload.photo.id,
-      );
+      const fileObject = await this.filesService.findOne({
+        id: clonedPayload.photo.id,
+      });
       if (!fileObject) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            photo: 'imageNotExists',
+        throw new HttpException(
+          {
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            errors: {
+              photo: 'imageNotExists',
+            },
           },
-        });
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
-      clonedPayload.photo = fileObject;
     }
 
     if (clonedPayload.role?.id) {
-      const roleObject = Object.values(RoleEnum)
-        .map(String)
-        .includes(String(clonedPayload.role.id));
-      if (!roleObject) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            role: 'roleNotExists',
-          },
-        });
-      }
-    }
+      const roleObject = await this.roleService.findOneWithSuperAdmin({
+        id: clonedPayload.role.id,
+      });
 
-    if (clonedPayload.status?.id) {
-      const statusObject = Object.values(StatusEnum)
-        .map(String)
-        .includes(String(clonedPayload.status.id));
-      if (!statusObject) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            status: 'statusNotExists',
+      if (!roleObject) {
+        throw new HttpException(
+          {
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            errors: {
+              role: 'roleNotExists',
+            },
           },
-        });
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
     }
 
@@ -102,7 +97,7 @@ export class UsersService {
     filterOptions?: FilterUserDto | null;
     sortOptions?: SortUserDto[] | null;
     paginationOptions: IPaginationOptions;
-  }): Promise<User[]> {
+  }): Promise<InfinityPaginationResultType<User>> {
     return this.usersRepository.findManyWithPagination({
       filterOptions,
       sortOptions,
@@ -110,31 +105,27 @@ export class UsersService {
     });
   }
 
-  findById(id: User['id']): Promise<NullableType<User>> {
-    return this.usersRepository.findById(id);
+  async findOne(
+    fields: EntityCondition<User>,
+    relations?: Array<string>,
+  ): Promise<NullableType<User>> {
+    const user = await this.usersRepository.findOne(fields, relations);
+
+    if (user) {
+      let array: string[] = [];
+      const rolePermissionsArray = await this.rolePermissionService.findMany({
+        filterOptions: { roleId: user?.role?.id },
+      });
+      for (const permission of rolePermissionsArray) {
+        array.push(permission.permission!.name!);
+      }
+      user.rolePermissions = array;
+    }
+
+    return user;
   }
 
-  findByEmail(email: User['email']): Promise<NullableType<User>> {
-    return this.usersRepository.findByEmail(email);
-  }
-
-  findBySocialIdAndProvider({
-    socialId,
-    provider,
-  }: {
-    socialId: User['socialId'];
-    provider: User['provider'];
-  }): Promise<NullableType<User>> {
-    return this.usersRepository.findBySocialIdAndProvider({
-      socialId,
-      provider,
-    });
-  }
-
-  async update(
-    id: User['id'],
-    payload: DeepPartial<User>,
-  ): Promise<User | null> {
+  async update(id: User['id'], payload: Partial<User>): Promise<User | null> {
     const clonedPayload = { ...payload };
 
     if (
@@ -146,67 +137,79 @@ export class UsersService {
     }
 
     if (clonedPayload.email) {
-      const userObject = await this.usersRepository.findByEmail(
-        clonedPayload.email,
-      );
+      const userObject = await this.usersRepository.findOne({
+        email: clonedPayload.email,
+      });
 
-      if (userObject && userObject.id !== id) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            email: 'emailAlreadyExists',
+      if (userObject?.id !== id) {
+        throw new HttpException(
+          {
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            errors: {
+              email: 'emailAlreadyExists',
+            },
           },
-        });
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
     }
 
     if (clonedPayload.photo?.id) {
-      const fileObject = await this.filesService.findById(
-        clonedPayload.photo.id,
-      );
+      const fileObject = await this.filesService.findOne({
+        id: clonedPayload.photo.id,
+      });
       if (!fileObject) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            photo: 'imageNotExists',
+        throw new HttpException(
+          {
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            errors: {
+              photo: 'imageNotExists',
+            },
           },
-        });
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
-      clonedPayload.photo = fileObject;
     }
 
     if (clonedPayload.role?.id) {
-      const roleObject = Object.values(RoleEnum)
-        .map(String)
-        .includes(String(clonedPayload.role.id));
+      const roleObject = await this.roleService.findOneWithSuperAdmin({
+        id: clonedPayload.role.id,
+      });
       if (!roleObject) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            role: 'roleNotExists',
+        throw new HttpException(
+          {
+            status: HttpStatus.UNPROCESSABLE_ENTITY,
+            errors: {
+              role: 'roleNotExists',
+            },
           },
-        });
-      }
-    }
-
-    if (clonedPayload.status?.id) {
-      const statusObject = Object.values(StatusEnum)
-        .map(String)
-        .includes(String(clonedPayload.status.id));
-      if (!statusObject) {
-        throw new UnprocessableEntityException({
-          status: HttpStatus.UNPROCESSABLE_ENTITY,
-          errors: {
-            status: 'statusNotExists',
-          },
-        });
+          HttpStatus.UNPROCESSABLE_ENTITY,
+        );
       }
     }
 
     return this.usersRepository.update(id, clonedPayload);
   }
 
-  async remove(id: User['id']): Promise<void> {
-    await this.usersRepository.remove(id);
+  async softDelete(id: User['id']): Promise<void> {
+    await this.usersRepository.softDelete(id);
+  }
+
+  async setUserBlackList(
+    id: string,
+    status: StatusEnum,
+  ): Promise<NullableType<User | null>> {
+    const user = await this.findOne({ id });
+    if (user?.status) {
+      user.status = status;
+      return await this.usersRepository.setUserBlackList(id, user);
+    }
+    if (!user) {
+      throw new CustomException(
+        'user not exist',
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
+    }
+    return null;
   }
 }

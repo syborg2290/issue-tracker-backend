@@ -30,23 +30,24 @@ import { MailerModule } from './mailer/mailer.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { MongooseConfigService } from './database/mongoose-config.service';
 import { DatabaseConfig } from './database/config/database-config.type';
+import { RolePermissionModule } from './role-permission/role-permission.module';
+import { PermissionModule } from './permission/permission.module';
+import { RoleModule } from './roles/role.module';
+import { AppService } from './app.service';
+import { AppController } from './app.controller';
+import { RateLimiterModule } from 'nestjs-rate-limiter';
 
-// <database-block>
-const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
-  .isDocumentDatabase
-  ? MongooseModule.forRootAsync({
-      useClass: MongooseConfigService,
-    })
-  : TypeOrmModule.forRootAsync({
-      useClass: TypeOrmConfigService,
-      dataSourceFactory: async (options: DataSourceOptions) => {
-        return new DataSource(options).initialize();
-      },
-    });
-// </database-block>
+
 
 @Module({
   imports: [
+    RateLimiterModule.register({
+      // Basic configuration
+      for: 'Express', // if you are using Express
+      type: 'Memory', // the storage type (in memory, Redis, etc.)
+      points: 5, // number of points
+      duration: 1, // per second
+    }),
     ConfigModule.forRoot({
       isGlobal: true,
       load: [
@@ -62,7 +63,16 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
       ],
       envFilePath: ['.env'],
     }),
-    infrastructureDatabaseModule,
+    (databaseConfig() as DatabaseConfig).isDocumentDatabase
+      ? MongooseModule.forRootAsync({
+        useClass: MongooseConfigService,
+      })
+      : TypeOrmModule.forRootAsync({
+        useClass: TypeOrmConfigService,
+        dataSourceFactory: async (options: DataSourceOptions) => {
+          return new DataSource(options).initialize();
+        },
+      }),
     I18nModule.forRootAsync({
       useFactory: (configService: ConfigService<AllConfigType>) => ({
         fallbackLanguage: configService.getOrThrow('app.fallbackLanguage', {
@@ -97,6 +107,11 @@ const infrastructureDatabaseModule = (databaseConfig() as DatabaseConfig)
     MailModule,
     MailerModule,
     HomeModule,
+    RoleModule,
+    PermissionModule,
+    RolePermissionModule,
   ],
+  providers: [AppService],
+  controllers: [AppController]
 })
-export class AppModule {}
+export class AppModule { }

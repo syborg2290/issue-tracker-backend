@@ -1,45 +1,30 @@
 import { Injectable } from '@nestjs/common';
+import { EntityCondition } from '../utils/types/entity-condition.type';
 
-import { SessionRepository } from './infrastructure/persistence/session.repository';
 import { Session } from './domain/session';
-import { User } from '../users/domain/user';
 import { NullableType } from '../utils/types/nullable.type';
+import { SessionAbstractRepository } from './infrastructure/repositories/session.abstract.repository';
+import { User } from 'src/users/domain/user';
 
 @Injectable()
 export class SessionService {
-  constructor(private readonly sessionRepository: SessionRepository) {}
+  constructor(private readonly sessionRepository: SessionAbstractRepository) { }
 
-  findById(id: Session['id']): Promise<NullableType<Session>> {
-    return this.sessionRepository.findById(id);
+  findOne(options: EntityCondition<Session>): Promise<NullableType<Session>> {
+    return this.sessionRepository.findOne(options);
   }
 
   create(
-    data: Omit<Session, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>,
+    data: Omit<Session, 'id' | 'createdAt' | 'deletedAt'>,
   ): Promise<Session> {
     return this.sessionRepository.create(data);
   }
 
-  update(
-    id: Session['id'],
-    payload: Partial<
-      Omit<Session, 'id' | 'createdAt' | 'updatedAt' | 'deletedAt'>
-    >,
-  ): Promise<Session | null> {
-    return this.sessionRepository.update(id, payload);
-  }
-
-  deleteById(id: Session['id']): Promise<void> {
-    return this.sessionRepository.deleteById(id);
-  }
-
-  deleteByUserId(conditions: { userId: User['id'] }): Promise<void> {
-    return this.sessionRepository.deleteByUserId(conditions);
-  }
-
-  deleteByUserIdWithExclude(conditions: {
-    userId: User['id'];
-    excludeSessionId: Session['id'];
+  async softDelete(criteria: {
+    id?: Session['id'];
+    user?: Pick<User, 'id'>;
+    excludeId?: Session['id'];
   }): Promise<void> {
-    return this.sessionRepository.deleteByUserIdWithExclude(conditions);
+    await this.sessionRepository.softDelete(criteria);
   }
 }

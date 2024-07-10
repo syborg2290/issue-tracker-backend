@@ -1,50 +1,57 @@
-import { PartialType, ApiPropertyOptional } from '@nestjs/swagger';
+import { PartialType } from '@nestjs/swagger';
 import { CreateUserDto } from './create-user.dto';
-
 import { Transform, Type } from 'class-transformer';
+import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsOptional, MinLength } from 'class-validator';
-import { FileDto } from '../../files/dto/file.dto';
-import { RoleDto } from '../../roles/dto/role.dto';
-import { StatusDto } from '../../statuses/dto/status.dto';
 import { lowerCaseTransformer } from '../../utils/transformers/lower-case.transformer';
+import { RoleDto } from '../../roles/dto/role.dto';
+import { Permission } from '../../permission/domain/permission';
+import { FileDto } from 'src/files/dto/file.dto';
 
 export class UpdateUserDto extends PartialType(CreateUserDto) {
-  @ApiPropertyOptional({ example: 'test1@example.com', type: String })
+  @ApiProperty({ example: 'test1@example.com' })
   @Transform(lowerCaseTransformer)
   @IsOptional()
   @IsEmail()
+  @Transform(({ value }) => value?.trim())
   email?: string | null;
 
-  @ApiPropertyOptional()
+  @ApiProperty()
   @IsOptional()
   @MinLength(6)
+  @Transform(({ value }) => value?.trim())
   password?: string;
 
   provider?: string;
 
   socialId?: string | null;
 
-  @ApiPropertyOptional({ example: 'John', type: String })
+  @ApiProperty({ example: 'John' })
   @IsOptional()
-  firstName?: string | null;
+  @Transform(({ value }) => value?.trim())
+  firstName?: string;
 
-  @ApiPropertyOptional({ example: 'Doe', type: String })
+  @ApiProperty({ example: 'Doe' })
   @IsOptional()
-  lastName?: string | null;
+  @Transform(({ value }) => value?.trim())
+  lastName?: string;
 
-  @ApiPropertyOptional({ type: () => FileDto })
+  @ApiProperty({ type: FileDto })
   @IsOptional()
   photo?: FileDto | null;
 
-  @ApiPropertyOptional({ type: () => RoleDto })
+  @ApiProperty({ type: RoleDto })
   @IsOptional()
   @Type(() => RoleDto)
-  role?: RoleDto | null;
+  role?: RoleDto;
 
-  @ApiPropertyOptional({ type: () => StatusDto })
+  @ApiProperty()
   @IsOptional()
-  @Type(() => StatusDto)
-  status?: StatusDto;
+  status: number;
+
+  @ApiProperty()
+  @IsOptional()
+  permissons?: Permission[] | null;
 
   hash?: string | null;
 }

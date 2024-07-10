@@ -5,10 +5,11 @@ import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './strategies/jwt.strategy';
 import { AnonymousStrategy } from './strategies/anonymous.strategy';
-import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import { UsersModule } from '../users/users.module';
 import { MailModule } from '../mail/mail.module';
 import { SessionModule } from '../session/session.module';
-import { UsersModule } from '../users/users.module';
+import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
+import { RoleModule } from 'src/roles/role.module';
 
 @Module({
   imports: [
@@ -16,10 +17,11 @@ import { UsersModule } from '../users/users.module';
     SessionModule,
     PassportModule,
     MailModule,
+    RoleModule,
     JwtModule.register({}),
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, JwtRefreshStrategy, AnonymousStrategy],
   exports: [AuthService],
 })
-export class AuthModule {}
+export class AuthModule { }

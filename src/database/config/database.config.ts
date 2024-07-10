@@ -1,5 +1,6 @@
+import 'dotenv/config';
 import { registerAs } from '@nestjs/config';
-
+import { DatabaseConfig } from '../../database/config/database-config.type';
 import {
   IsOptional,
   IsInt,
@@ -10,7 +11,6 @@ import {
   IsBoolean,
 } from 'class-validator';
 import validateConfig from '../../utils/validate-config';
-import { DatabaseConfig } from './database-config.type';
 
 class EnvironmentVariablesValidator {
   @ValidateIf((envValues) => envValues.DATABASE_URL)
@@ -29,10 +29,12 @@ class EnvironmentVariablesValidator {
   @IsInt()
   @Min(0)
   @Max(65535)
+  @IsOptional()
   DATABASE_PORT: number;
 
   @ValidateIf((envValues) => !envValues.DATABASE_URL)
   @IsString()
+  @IsOptional()
   DATABASE_PASSWORD: string;
 
   @ValidateIf((envValues) => !envValues.DATABASE_URL)
@@ -82,7 +84,7 @@ export default registerAs<DatabaseConfig>('database', () => {
     host: process.env.DATABASE_HOST,
     port: process.env.DATABASE_PORT
       ? parseInt(process.env.DATABASE_PORT, 10)
-      : 5432,
+      : 3306,
     password: process.env.DATABASE_PASSWORD,
     name: process.env.DATABASE_NAME,
     username: process.env.DATABASE_USERNAME,

@@ -1,47 +1,55 @@
 import { Transform, Type } from 'class-transformer';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty } from '@nestjs/swagger';
 import { IsEmail, IsNotEmpty, IsOptional, MinLength } from 'class-validator';
-import { FileDto } from '../../files/dto/file.dto';
-import { RoleDto } from '../../roles/dto/role.dto';
-import { StatusDto } from '../../statuses/dto/status.dto';
 import { lowerCaseTransformer } from '../../utils/transformers/lower-case.transformer';
+import { RoleDto } from '../../roles/dto/role.dto';
+import { Permission } from '../../permission/domain/permission';
+import { FileDto } from 'src/files/dto/file.dto';
 
 export class CreateUserDto {
-  @ApiProperty({ example: 'test1@example.com', type: String })
+  @ApiProperty({ example: 'test1@example.com' })
   @Transform(lowerCaseTransformer)
   @IsNotEmpty()
   @IsEmail()
+  @Transform(({ value }) => value?.trim())
   email: string | null;
 
   @ApiProperty()
+  @IsOptional()
   @MinLength(6)
+  @Transform(({ value }) => value?.trim())
   password?: string;
 
   provider?: string;
 
   socialId?: string | null;
 
-  @ApiProperty({ example: 'John', type: String })
+  @ApiProperty({ example: 'John' })
   @IsNotEmpty()
-  firstName: string | null;
+  @Transform(({ value }) => value?.trim())
+  firstName: string;
 
-  @ApiProperty({ example: 'Doe', type: String })
+  @ApiProperty({ example: 'Doe' })
   @IsNotEmpty()
-  lastName: string | null;
+  @Transform(({ value }) => value?.trim())
+  lastName: string;
 
-  @ApiPropertyOptional({ type: () => FileDto })
+  @ApiProperty()
+  @IsOptional()
+  @Transform(({ value }) => value?.trim())
+  address?: string | null;
+
+  @ApiProperty({ type: () => FileDto })
   @IsOptional()
   photo?: FileDto | null;
 
-  @ApiPropertyOptional({ type: RoleDto })
+  @ApiProperty({ type: RoleDto })
   @IsOptional()
   @Type(() => RoleDto)
-  role?: RoleDto | null;
+  role?: RoleDto;
 
-  @ApiPropertyOptional({ type: StatusDto })
-  @IsOptional()
-  @Type(() => StatusDto)
-  status?: StatusDto;
+  @ApiProperty()
+  permissons?: Permission[] | null;
 
   hash?: string | null;
 }
