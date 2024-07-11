@@ -81,27 +81,27 @@ export class AuthService {
       );
     }
 
-    if (user.role?.id == 1 && !loginDto.role) {
-      throw new HttpException(
-        {
-          status: HttpStatus.UNAUTHORIZED,
-          message: 'Unauthorized action',
-        },
-        HttpStatus.UNAUTHORIZED,
-      );
-    }
+    // if (user.role?.id == 1 && !loginDto.role) {
+    //   throw new HttpException(
+    //     {
+    //       status: HttpStatus.UNAUTHORIZED,
+    //       message: 'Unauthorized action',
+    //     },
+    //     HttpStatus.UNAUTHORIZED,
+    //   );
+    // }
 
-    if (loginDto.role) {
-      if (loginDto.role != user.role?.id) {
-        throw new HttpException(
-          {
-            status: HttpStatus.UNAUTHORIZED,
-            message: 'Unauthorized action',
-          },
-          HttpStatus.UNAUTHORIZED,
-        );
-      }
-    }
+    // if (loginDto.role) {
+    //   if (loginDto.role != user.role?.id) {
+    //     throw new HttpException(
+    //       {
+    //         status: HttpStatus.UNAUTHORIZED,
+    //         message: 'Unauthorized action',
+    //       },
+    //       HttpStatus.UNAUTHORIZED,
+    //     );
+    //   }
+    // }
 
     const isValidPassword = await bcrypt.compare(
       loginDto.password,

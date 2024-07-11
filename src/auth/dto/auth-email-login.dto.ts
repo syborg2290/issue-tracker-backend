@@ -16,7 +16,7 @@ export class AuthEmailLoginDto {
   @Transform(({ value }) => value?.trim())
   password: string;
 
-  @ApiProperty()
-  @IsOptional()
-  role: number;
+  // @ApiProperty()
+  // @IsOptional()
+  // role: number;
 }
